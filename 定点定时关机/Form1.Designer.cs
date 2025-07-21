@@ -20,6 +20,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.comboBoxActionType = new System.Windows.Forms.ComboBox();
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
             this.label8 = new System.Windows.Forms.Label();
             this.comboBox3 = new System.Windows.Forms.ComboBox();
@@ -42,7 +43,9 @@
             this.comboBox4 = new System.Windows.Forms.ComboBox();
             this.button2 = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.nowTimer = new System.Windows.Forms.Timer(this.components);
+            this.progressBarShutdown = new System.Windows.Forms.ProgressBar();
+            this.labelRemainingTime = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -52,7 +55,7 @@
             // 
             this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Controls.Add(this.tabPage2);
-            this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabControl1.Dock = System.Windows.Forms.DockStyle.Top;
             this.tabControl1.Location = new System.Drawing.Point(0, 0);
             this.tabControl1.Margin = new System.Windows.Forms.Padding(6);
             this.tabControl1.Name = "tabControl1";
@@ -63,7 +66,9 @@
             // 
             // tabPage1
             // 
+            this.tabPage1.BackColor = System.Drawing.Color.Transparent;
             this.tabPage1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.tabPage1.Controls.Add(this.comboBoxActionType);
             this.tabPage1.Controls.Add(this.dateTimePicker1);
             this.tabPage1.Controls.Add(this.label8);
             this.tabPage1.Controls.Add(this.comboBox3);
@@ -83,6 +88,17 @@
             this.tabPage1.Size = new System.Drawing.Size(645, 197);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "定点";
+            // 
+            // comboBoxActionType
+            // 
+            this.comboBoxActionType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            
+            this.comboBoxActionType.Font = new System.Drawing.Font("微软雅黑", 15F);
+            this.comboBoxActionType.FormattingEnabled = true;
+            this.comboBoxActionType.Location = new System.Drawing.Point(15, 136);
+            this.comboBoxActionType.Name = "comboBoxActionType";
+            this.comboBoxActionType.Size = new System.Drawing.Size(105, 40);
+            this.comboBoxActionType.TabIndex = 20;
             // 
             // dateTimePicker1
             // 
@@ -119,18 +135,18 @@
             this.button3.TabIndex = 17;
             this.button3.Text = "取消倒计时";
             this.button3.UseVisualStyleBackColor = true;
-            this.button3.Click += new System.EventHandler(this.buttonCancel_Click);
+            this.button3.Click += new System.EventHandler(this.buttonCancelShutdown_Click);
             // 
             // button4
             // 
             this.button4.ForeColor = System.Drawing.Color.Red;
-            this.button4.Location = new System.Drawing.Point(80, 130);
+            this.button4.Location = new System.Drawing.Point(138, 130);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(150, 51);
             this.button4.TabIndex = 16;
             this.button4.Text = "开始倒计时";
             this.button4.UseVisualStyleBackColor = true;
-            this.button4.Click += new System.EventHandler(this.buttonSetShutdownTime_Click);
+            this.button4.Click += new System.EventHandler(this.buttonSetActionTime_Click);
             // 
             // label7
             // 
@@ -175,7 +191,7 @@
             this.label_sudTime.Name = "label_sudTime";
             this.label_sudTime.Size = new System.Drawing.Size(139, 32);
             this.label_sudTime.TabIndex = 3;
-            this.label_sudTime.Text = "关机时间：";
+            this.label_sudTime.Text = "动作时间：";
             // 
             // label_nowTime
             // 
@@ -198,6 +214,7 @@
             // 
             // tabPage2
             // 
+            this.tabPage2.BackColor = System.Drawing.Color.Transparent;
             this.tabPage2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.tabPage2.Controls.Add(this.label3);
             this.tabPage2.Controls.Add(this.label9);
@@ -223,7 +240,7 @@
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(164, 32);
             this.label3.TabIndex = 22;
-            this.label3.Text = "关机倒计时：";
+            this.label3.Text = "动作倒计时：";
             // 
             // label9
             // 
@@ -293,7 +310,7 @@
             this.button2.TabIndex = 15;
             this.button2.Text = "取消倒计时";
             this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.buttonCancel_Click);
+            this.button2.Click += new System.EventHandler(this.buttonCancelShutdown_Click);
             // 
             // button1
             // 
@@ -302,21 +319,42 @@
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(150, 51);
             this.button1.TabIndex = 14;
-            this.button1.Text = "关机倒计时";
+            this.button1.Text = "开始倒计时";
             this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.buttonCountdownTime_Click);
+            this.button1.Click += new System.EventHandler(this.buttonCountdownAction_Click);
             // 
-            // timer1
+            // nowTimer
             // 
-            this.timer1.Enabled = true;
-            this.timer1.Interval = 1000;
-            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            this.nowTimer.Enabled = true;
+            this.nowTimer.Interval = 1000;
+            this.nowTimer.Tick += new System.EventHandler(this.nowTimer_Tick);
+            // 
+            // progressBarShutdown
+            // 
+            this.progressBarShutdown.BackColor = System.Drawing.SystemColors.Control;
+            this.progressBarShutdown.Location = new System.Drawing.Point(364, 244);
+            this.progressBarShutdown.Name = "progressBarShutdown";
+            this.progressBarShutdown.Size = new System.Drawing.Size(285, 40);
+            this.progressBarShutdown.TabIndex = 21;
+            // 
+            // labelRemainingTime
+            // 
+            this.labelRemainingTime.AutoSize = true;
+            this.labelRemainingTime.BackColor = System.Drawing.Color.Transparent;
+            this.labelRemainingTime.Location = new System.Drawing.Point(-1, 244);
+            this.labelRemainingTime.Name = "labelRemainingTime";
+            this.labelRemainingTime.Size = new System.Drawing.Size(139, 32);
+            this.labelRemainingTime.TabIndex = 22;
+            this.labelRemainingTime.Text = "剩余时间：";
+            this.labelRemainingTime.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(15F, 32F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(653, 242);
+            this.ClientSize = new System.Drawing.Size(653, 287);
+            this.Controls.Add(this.labelRemainingTime);
+            this.Controls.Add(this.progressBarShutdown);
             this.Controls.Add(this.tabControl1);
             this.Font = new System.Drawing.Font("微软雅黑", 15F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -333,6 +371,7 @@
             this.tabPage2.ResumeLayout(false);
             this.tabPage2.PerformLayout();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
 		}
 
@@ -361,7 +400,7 @@
 		private global::System.Windows.Forms.Label label_nowTime;
 
 		// Token: 0x0400000B RID: 11
-		private global::System.Windows.Forms.Timer timer1;
+		private global::System.Windows.Forms.Timer nowTimer;
 
 		// Token: 0x0400000C RID: 12
 		private global::System.Windows.Forms.Label label_sudTime;
@@ -409,5 +448,8 @@
 		private global::System.Windows.Forms.ComboBox comboBox6;
         private System.Windows.Forms.DateTimePicker dateTimePicker1;
         private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.ProgressBar progressBarShutdown;
+        private System.Windows.Forms.Label labelRemainingTime;
+        private System.Windows.Forms.ComboBox comboBoxActionType;
     }
 }

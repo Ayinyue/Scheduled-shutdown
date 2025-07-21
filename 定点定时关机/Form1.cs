@@ -13,22 +13,16 @@ namespace 定点定时关机
             InitializeComponent();
         }
 
-        // Token: 0x06000002 RID: 2 RVA: 0x00002060 File Offset: 0x00000260
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-
-            // 获取当前日期时间并格式化为年月日时分秒
-            DateTime currentDateTime = DateTime.Now;
-
-            label_nowTime.Text = currentDateTime.ToString("yyyy年  M月dd日  HH    时   mm    分  ss    秒");
-
-        }
-
         // Token: 0x06000003 RID: 3 RVA: 0x00002098 File Offset: 0x00000298
         private void Form1_Load(object sender, EventArgs e)
         {
+            // 初始化倒计时定时器（1秒更新一次）
+            actionTimer = new Timer();
+            actionTimer.Interval = 1000; // 1秒
+            actionTimer.Tick += ActionTimer_Tick;
+
             // 启动计时器
-            timer1.Start();
+            nowTimer.Start();
 
             // 获取当前时间
             DateTime currentTime = DateTime.Now;
@@ -56,6 +50,9 @@ namespace 定点定时关机
             comboBox1.SelectedItem = currentTime.Hour.ToString("D2");
             comboBox2.SelectedItem = currentTime.Minute.ToString("D2");
             comboBox3.SelectedItem = currentTime.Second.ToString("D2");
+            comboBox4.SelectedItem = 0.ToString("D2");
+            comboBox5.SelectedItem = 0.ToString("D2");
+            comboBox6.SelectedItem = 0.ToString("D2");
 
             // 如果需要，可以禁用编辑功能，只允许选择
             comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -63,16 +60,179 @@ namespace 定点定时关机
             comboBox3.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBox5.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBox6.DropDownStyle = ComboBoxStyle.DropDownList;
+
+            comboBoxActionType.Items.Add(new ComboBoxItem("关机", "s"));
+            comboBoxActionType.Items.Add(new ComboBoxItem("重启", "r"));
+            comboBoxActionType.Items.Add(new ComboBoxItem("注销", "l"));
+            comboBoxActionType.SelectedIndex = 0;
+        }
+        // Token: 0x06000002 RID: 2 RVA: 0x00002060 File Offset: 0x00000260
+        private void nowTimer_Tick(object sender, EventArgs e)
+        {
+            label_nowTime.Text = DateTime.Now.ToString("yyyy年  M月dd日  HH    时   mm    分  ss    秒");
         }
 
-
-        // Token: 0x06000004 RID: 4 RVA: 0x00002178 File Offset: 0x00000378
-        private void buttonCountdownTime_Click(object sender, EventArgs e)
+        private void buttonSetActionTime_Click(object sender, EventArgs e)
         {
-            int num = Convert.ToInt32(comboBox4.Text) * 3600;
-            int num2 = Convert.ToInt32(comboBox5.Text) * 60;
-            int num3 = Convert.ToInt32(comboBox6.Text);
-            shutdown("shutdown -s -t " + (num + num2 + num3).ToString());
+            ScheduleActionAtSpecificTime();
+        }
+
+        private void buttonCountdownAction_Click(object sender, EventArgs e)
+        {
+            ScheduleActionInCountdown();
+        }
+
+        private void ScheduleActionAtSpecificTime()
+        {
+            try
+            {
+                // 获取操作类型
+                var selectedItem = (ComboBoxItem)comboBoxActionType.SelectedItem;
+                string action = selectedItem.Value;
+
+                // 获取用户选择的时间
+                int hours = int.Parse(comboBox1.Text);
+                int minutes = int.Parse(comboBox2.Text);
+                int seconds = int.Parse(comboBox3.Text);
+
+                // 获取用户选择的日期
+                DateTime selectedDate = dateTimePicker1.Value.Date;
+
+                // 构建完整的日期时间
+                DateTime scheduledTime = new DateTime(
+                    selectedDate.Year,
+                    selectedDate.Month,
+                    selectedDate.Day,
+                    hours,
+                    minutes,
+                    seconds);
+
+                // 获取当前时间
+                DateTime currentTime = DateTime.Now;
+
+                // 检查设定时间是否已过
+                if (scheduledTime <= currentTime)
+                {
+                    MessageBox.Show("设定的时间已过，请重新设置！", "错误", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                    return;
+                }
+
+                // 计算时间差并执行命令
+                TimeSpan timeSpan = scheduledTime - currentTime;
+                int totalSeconds = (int)timeSpan.TotalSeconds;
+
+                // 执行命令
+                if (action == "h")
+                {
+                    // 休眠：使用 powercfg 命令（Windows 10/11 支持）
+                    shutdown("rundll32.exe powrprof.dll, SetSuspendState 0,0,0");
+                }
+                else
+                {
+                    shutdown($"shutdown -{action} -t {totalSeconds}");
+                }
+
+                // 设置倒计时变量
+                totalSecondsSet = totalSeconds;
+                totalSecondsRemaining = totalSeconds;
+
+                // 设置进度条
+                progressBarShutdown.Minimum = 0;
+                progressBarShutdown.Maximum = totalSecondsSet;
+
+                // 更新剩余时间显示
+                UpdateDisplay();
+
+                // 启动倒计时定时器
+                actionTimer.Start();
+
+                string actionName = GetActionDisplayName(action);
+                MessageBox.Show(
+                    $"系统将在 {scheduledTime:yyyy-MM-dd HH:mm:ss} {actionName}。",
+                    $"定时{actionName}已设置",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (FormatException)
+            {
+                MessageBox.Show("请输入有效的数字！", "格式错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("时间设置出错: " + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ScheduleActionInCountdown()
+        {
+            int hours = 0, minutes = 0, seconds = 0;
+
+            if (!int.TryParse(comboBox4.Text, out hours))
+            {
+                MessageBox.Show("请输入有效的小时数！", "输入错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!int.TryParse(comboBox5.Text, out minutes))
+            {
+                MessageBox.Show("请输入有效的分钟数！", "输入错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!int.TryParse(comboBox6.Text, out seconds))
+            {
+                MessageBox.Show("请输入有效的秒数！", "输入错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            int totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+            if (totalSeconds <= 0)
+            {
+                MessageBox.Show("请输入大于 0 的时间！", "无效时间", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 获取操作类型
+            var selectedItem = (ComboBoxItem)comboBoxActionType.SelectedItem;
+            string action = selectedItem.Value;
+
+            // 设置倒计时变量
+            totalSecondsSet = totalSeconds;
+            totalSecondsRemaining = totalSeconds;
+
+            // 设置进度条
+            progressBarShutdown.Minimum = 0;
+            progressBarShutdown.Maximum = totalSecondsSet;
+
+            // 显示剩余时间
+            UpdateDisplay();
+
+            // 启动倒计时定时器
+            actionTimer.Start();
+
+            try
+            {
+                if (action == "h")
+                {
+                    shutdown("rundll32.exe powrprof.dll, SetSuspendState 0,0,0");
+                }
+                else
+                {
+                    shutdown($"shutdown -{action} -t {totalSeconds}");
+                }
+
+                string actionName = GetActionDisplayName(action);
+                MessageBox.Show(
+                    $"系统将在 {FormatTimeSpan(TimeSpan.FromSeconds(totalSeconds))} 后{actionName}。",
+                    $"定时{actionName}已设置",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("执行命令失败：" + ex.Message);
+            }
         }
 
         // Token: 0x06000005 RID: 5 RVA: 0x000021E0 File Offset: 0x000003E0
@@ -104,74 +264,107 @@ namespace 定点定时关机
             }
             catch (Exception ex)
             {
-                MessageBox.Show("执行关机命令失败: " + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("执行定时命令失败: " + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
 
+        private void ActionTimer_Tick(object sender, EventArgs e)
+        {
+            if (totalSecondsRemaining > 0)
+            {
+                totalSecondsRemaining--;
 
-        // Token: 0x06000006 RID: 6 RVA: 0x0000226D File Offset: 0x0000046D
-        private void buttonCancel_Click(object sender, EventArgs e)
+                // 计算已完成的百分比
+                int percentComplete = (int)((double)(totalSecondsSet - totalSecondsRemaining) / totalSecondsSet * 100);
+                progressBarShutdown.Value = percentComplete;
+
+                // 更新剩余时间显示
+                UpdateDisplay();
+            }
+            else
+            {
+                actionTimer.Stop();
+                ResetCountdownUI(); // 重置 UI
+                MessageBox.Show("系统即将关机...", "倒计时结束", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void UpdateDisplay()
+        {
+            TimeSpan timeSpan = TimeSpan.FromSeconds(totalSecondsRemaining);
+            string displayTime;
+
+            if (timeSpan.TotalHours >= 1)
+            {
+                displayTime = $"{(int)timeSpan.TotalHours} 小时 {timeSpan.Minutes} 分 {timeSpan.Seconds} 秒";
+            }
+            else
+            {
+                displayTime = $"{timeSpan.Minutes} 分 {timeSpan.Seconds} 秒";
+            }
+
+            labelRemainingTime.Text = $"剩余时间：{displayTime}";
+
+            int percentComplete = (int)((double)(totalSecondsSet - totalSecondsRemaining) / totalSecondsSet * 100);
+            Text = $"定时操作工具 - {percentComplete}%";
+        }
+        string GetActionDisplayName(string command)
+        {
+            switch (command)
+            {
+                case "s":
+                    return "关机";
+                case "r":
+                    return "重启";
+                case "l":
+                    return "注销";
+                default:
+                    return "操作";
+            }
+        }
+
+        private string FormatTimeSpan(TimeSpan timeSpan)
+        {
+            if (timeSpan.TotalHours >= 1)
+            {
+                return $"{(int)timeSpan.TotalHours} 小时 {timeSpan.Minutes} 分 {timeSpan.Seconds} 秒";
+            }
+            else
+            {
+                return $"{timeSpan.Minutes} 分 {timeSpan.Seconds} 秒";
+            }
+        }
+
+        private void buttonCancelShutdown_Click(object sender, EventArgs e)
         {
             try
             {
-                // 执行取消关机命令
                 shutdown("shutdown -a");
-                MessageBox.Show("已取消定时关机", "操作成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                actionTimer.Stop();
+                ResetCountdownUI();
+                MessageBox.Show("已取消定时操作。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("取消关机失败: " + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("取消失败：" + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void buttonSetShutdownTime_Click(object sender, EventArgs e)
+        private void ResetCountdownUI()
         {
-            try
-            {
-                // 获取用户选择的时间
-                int hours = int.Parse(comboBox1.Text);
-                int minutes = int.Parse(comboBox2.Text);
-                int seconds = int.Parse(comboBox3.Text);
+            totalSecondsRemaining = 0;
+            totalSecondsSet = 0;
 
-                // 获取用户选择的日期
-                DateTime selectedDate = dateTimePicker1.Value.Date;
+            progressBarShutdown.Value = 0;
+            labelRemainingTime.Text = "剩余时间：---";
 
-                // 构建完整的日期时间
-                DateTime scheduledTime = new DateTime(
-                    selectedDate.Year,
-                    selectedDate.Month,
-                    selectedDate.Day,
-                    hours,
-                    minutes,
-                    seconds);
-
-                // 获取当前时间
-                DateTime currentTime = DateTime.Now;
-
-                // 检查设定时间是否已过
-                if (scheduledTime <= currentTime)
-                {
-                    MessageBox.Show("设定的时间已过，请重新设置！", "错误：", MessageBoxButtons.OKCancel, MessageBoxIcon.Hand);
-                    return;
-                }
-
-                // 计算时间差并执行关机命令
-                TimeSpan timeSpan = scheduledTime - currentTime;
-                int totalSeconds = (int)timeSpan.TotalSeconds;
-
-                shutdown("shutdown -s -t " + totalSeconds.ToString());
-
-                // 可选：显示成功消息
-                MessageBox.Show($"系统将在 {scheduledTime:yyyy-MM-dd HH:mm:ss} 关机",
-                               "定时关机已设置",
-                               MessageBoxButtons.OK,
-                               MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("时间设置出错: " + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            Text = "系统定时工具";
         }
+
+        private int totalSecondsRemaining = 0;
+        private int totalSecondsSet = 0;
+        private Timer actionTimer;
+        private string currentAction = "";
     }
 }
