@@ -92,7 +92,6 @@
             // comboBoxActionType
             // 
             this.comboBoxActionType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            
             this.comboBoxActionType.Font = new System.Drawing.Font("微软雅黑", 15F);
             this.comboBoxActionType.FormattingEnabled = true;
             this.comboBoxActionType.Location = new System.Drawing.Point(15, 136);
@@ -363,7 +362,7 @@
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "定时关机";
+            this.Text = "系统定时工具";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
