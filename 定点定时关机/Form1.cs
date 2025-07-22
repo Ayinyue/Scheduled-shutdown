@@ -185,7 +185,7 @@ namespace 定点定时关机
                 return;
             }
 
-            int totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            int totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
 
             if (totalSeconds <= 0)
             {
@@ -306,8 +306,9 @@ namespace 定点定时关机
 
             labelRemainingTime.Text = $"剩余时间：{displayTime}";
 
-            int percentComplete = (int)((double)(totalSecondsSet - totalSecondsRemaining) / totalSecondsSet * 100);
-            Text = $"定时操作工具 - {percentComplete}%";
+            //int percentComplete = (int)((double)(totalSecondsSet - totalSecondsRemaining) / totalSecondsSet * 100);
+            //Text = $"定时操作工具 - {percentComplete}%";
+            Text = $"定时操作工具 - {totalSecondsSet - totalSecondsRemaining}s / {totalSecondsSet}s";
         }
         string GetActionDisplayName(string command)
         {
